@@ -1,0 +1,50 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: pilot
+      POSTGRES_PASSWORD: pilotpass
+      POSTGRES_DB: govschemes
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - govnet
+
+  redis:
+    image: redis:7
+    restart: always
+    networks:
+      - govnet
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend/app:/app/app
+    networks:
+      - govnet
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    networks:
+      - govnet
+
+volumes:
+  pgdata:
+
+networks:
+  govnet:
