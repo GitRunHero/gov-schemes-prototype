@@ -1,0 +1,3 @@
+scheme_id,title,description,eligibility_rules,required_documents,source_url
+scheme-1,Senior Health Check (StateX),"Annual free health check for citizens aged 60+ in StateX","[{""field"":""date_of_birth"",""operator"":""age_gte"",""value"":60},{""field"":""residence_state"",""operator"":""equals"",""value"":""StateX""}]","[""id_card"",""residence_proof""]","https://statex.gov/health/senior-check"
+scheme-2,Low Income Family Support,"Cash support for households of 3+ with income <= 15000","[{""field"":""household_size"",""operator"":""numeric_gte"",""value"":3},{""field"":""monthly_income"",""operator"":""numeric_lte"",""value"":15000}]","[""id_card"",""income_proof""]","https://statex.gov/social/support"
