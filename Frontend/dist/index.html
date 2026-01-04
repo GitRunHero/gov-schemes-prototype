@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Gov Schemes Prototype</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 900px; }
+    label { display:block; margin-top:10px; }
+    input, select { padding:6px; width: 100%; max-width:320px; }
+    button { margin-top: 12px; padding:8px 12px; }
+    pre { background:#f7f7f7; padding:12px; }
+  </style>
+</head>
+<body>
+  <h1>Gov Schemes Prototype</h1>
+
+  <button id="load-sample">Load sample schemes (admin)</button>
+
+  <h2>Create Citizen</h2>
+  <label>Name <input id="name" /></label>
+  <label>Date of birth (YYYY-MM-DD) <input id="dob" placeholder="1958-05-01" /></label>
+  <label>Residence State <input id="state" value="StateX" /></label>
+  <label>Monthly income <input id="income" value="9000" /></label>
+  <label>Household size <input id="household" value="2" /></label>
+  <button id="create-citizen">Create Citizen</button>
+
+  <h3>Citizen ID</h3>
+  <div id="citizen-id" style="font-weight:bold"></div>
+
+  <button id="check-eligibility" style="margin-top:12px">Check Eligible Schemes</button>
+
+  <h2>Results</h2>
+  <div id="results"></div>
+
+  <script>
+    const API = "http://localhost:8000";
+
+    document.getElementById("load-sample").onclick = async () => {
+      const username = prompt("Admin username (default: admin):", "admin");
+      const password = prompt("Admin password (default: adminpass):", "adminpass");
+      const tokenRes = await fetch(API + "/api/v1/admin/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+      });
+      const tk = await tokenRes.json();
+      if (!tokenRes.ok) { alert(JSON.stringify(tk)); return; }
+      const res = await fetch(API + "/api/v1/admin/load-sample", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + tk.access_token }
+      });
+      const j = await res.json();
+      alert("Sample loaded: " + JSON.stringify(j));
+    };
+
+    document.getElementById("create-citizen").onclick = async () => {
+      const name = document.getElementById("name").value;
+      const date_of_birth = document.getElementById("dob").value;
+      const residence_state = document.getElementById("state").value;
+      const monthly_income = parseFloat(document.getElementById("income").value || "0");
+      const household_size = parseInt(document.getElementById("household").value || "1");
+
+      const res = await fetch(API + "/api/v1/citizens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, date_of_birth, residence_state, monthly_income, household_size })
+      });
+      const j = await res.json();
+      if (res.ok) {
+        document.getElementById("citizen-id").innerText = j.citizen_id;
+        alert("Citizen created: " + j.citizen_id);
+      } else {
+        alert("Error: " + JSON.stringify(j));
+      }
+    };
+
+    document.getElementById("check-eligibility").onclick = async () => {
+      const cid = document.getElementById("citizen-id").innerText;
+      if (!cid) {
+        alert("Create a citizen first");
+        return;
+      }
+      const res = await fetch(API + "/api/v1/citizens/" + cid + "/eligible-schemes");
+      const j = await res.json();
+      const container = document.getElementById("results");
+      container.innerHTML = "";
+      if (!res.ok) {
+        container.innerText = JSON.stringify(j);
+        return;
+      }
+      const matches = j.matches;
+      matches.forEach(m => {
+        const div = document.createElement("div");
+        div.style.border = "1px solid #ddd";
+        div.style.padding = "8px";
+        div.style.marginBottom = "8px";
+        const title = document.createElement("h3");
+        title.innerText = m.title + (m.eligible ? " ✅ Eligible" : " ❌ Not eligible");
+        div.appendChild(title);
+        const desc = document.createElement("p");
+        desc.innerText = m.description;
+        div.appendChild(desc);
+
+        const ul = document.createElement("ul");
+        m.details.forEach(d => {
+          const li = document.createElement("li");
+          li.innerText = `Rule: ${JSON.stringify(d.rule)} — evaluated: ${d.value_evaluated} — passed: ${d.passed}`;
+          ul.appendChild(li);
+        });
+        div.appendChild(ul);
+
+        container.appendChild(div);
+      });
+    };
+  </script>
+</body>
+</html>
